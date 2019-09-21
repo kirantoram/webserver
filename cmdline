@@ -22,3 +22,74 @@ Below extracts patterns of three digits surrounded by spaces.
 grep -o " [0-9]{3} " /var/log/apache2/access.log
 
 $ cat access.log | cut -d ' ' -f 9
+
+
+Are There Too Many Errors?
+Apache logs have errors from two sources: the error log and error status codes in the access log. HTTP status codes that are errors are 400 or above
+$ cat access.log | cut -d ' ' -f 9 | sort | uniq -c | sort -nr
+     941 200
+     292 500
+     290 404
+     50 401
+     20 400
+     
+What is Causing 404s?
+A 404 error is defined as a missing file or resource. Looking at the request URI will tell you which one it is.
+$ grep " 404 " access.log | cut -d ' ' -f 7 | sort | uniq -c | sort -nr
+     17 /manager/html
+      3 /robots.txt
+      3 /phpMyAdmin/scripts/setup.php
+      3 //myadmin/scripts/setup.php
+      3 /favicon.ico
+      
+Breakdown of errors by browser.
+filter your logs on a specific status code (404 or 500, for example) by the userAgent field. 
+If you are running an API, it’s helpful to see which client libraries may have issues. 
+The Apache logs can aid in troubleshooting issues with client libraries or agents, and even show you which are most popular. 
+$ cat access.log.1 | cut -d '"' -f 6 | sort | uniq -c | sort -nr
+     51 -
+     47 ZmEu
+     31 () { :;};/usr/bin/perl -e 'print 
+     14 Apache/2.2.22 (Ubuntu) (internal dummy connection)
+     11 Mozilla/5.0
+     
+Site Loading Too Slowly?
+extract the request time field, and then use a tool like awk to calculate the average. 
+In this example, the average is 362k microseconds, or 0.362 seconds.
+ ubuntu@ip-172-31-11-241:/var/log/apache2$ cat access.log | cut -d ' ' -f 1 | sort | uniq -c | sort -nr
+     31 91.142.209.68
+     29 94.102.49.11
+     28 173.236.125.26
+     19 222.74.212.77
+     14 127.0.0.1
+362935
+
+
+Too Much Load From One Source?
+A configuration or system problem
+A client app or bot hitting your site too fast
+A denial of service attack
+
+To find an answer from your Apache fields.
+The useragent field can give you a hint as to whether an app or bot is hitting your site. Many simple bots label themselves as such.
+The remoteaddr field can tell you if specific IPs are generating a significant proportion of traffic.
+
+ ubuntu@ip-172-31-11-241:/var/log/apache2$ cat access.log.1 | cut -d ' ' -f 1 | sort | uniq -c | sort -nr
+     31 91.142.219.68
+     29 94.102.49.11
+     28 173.236.125.26
+     19 222.74.212.77
+     14 127.0.0.1
+ 
+ 
+Unusual Traffic Patterns?
+You’ll want to keep a monitor up and running on your site to look for unusual behavior that could be a security problem, or even potential attacks.
+There are two big approaches to finding unusual events: top-down and bottom-up. 
+
+For top-down, look at high level metrics to see if there are unusual traffic patterns that could compromise your site (such as too many requests from a particular IP). 
+You can watch these on a dashboard or set alerts when critical thresholds are reached.
+
+For a bottom-up analysis, start by subtracting the legitimate traffic you already know about. Drill down to just the errors. Then within the errors, look at each one to determine the cause. 
+Oftentimes, 80% of the errors are caused by a small number of known problems, so subtract those from your search. Now you can easily see unusual things like odd user agents or URLs that aren’t legitimate
+
+     
