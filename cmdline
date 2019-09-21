@@ -189,6 +189,10 @@ awk '($9 ~ /403/)' combined_log \
  | awk -F\" '($2 ~ /\.(jpg|gif)/){print $4}' \
  | sort | uniq -c | sort
 
+or 
+
+awk -F\" '{split($3,ar," "); if(ar[1] == "403")print $0}' combined.log
+
 
 tail -n 2 access.log error.log
 tail -f access.log | grep 404
