@@ -1,3 +1,10 @@
+Log Formats
+http://httpd.apache.org/docs/2.2/logs.html
+https://httpd.apache.org/docs/current/mod/mod_log_config.html#formats
+
+"%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\""
+
+
 Troubleshoot with Apache Logs
 There are several ways for a website to break, and when they do, you’ll want to have the information needed to quickly bring it back online. If you or your users experience an error, you may want to find out the following.
 
@@ -116,3 +123,77 @@ https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 
 https://www.the-art-of-web.com/system/logs/
 
+Using the default separator which is any white-space (spaces or tabs) we get the following:
+awk '{print $1}' combined_log         # ip address (%h)
+awk '{print $2}' combined_log         # RFC 1413 identity (%l)
+awk '{print $3}' combined_log         # userid (%u)
+awk '{print $4,5}' combined_log       # date/time (%t)
+awk '{print $9}' combined_log         # status code (%>s)
+awk '{print $10}' combined_log        # size (%b)
+
+You might notice that we've missed out some items. To get to them we need to set the delimiter to the " character which changes the way the lines are 'exploded' and allows the following:
+
+awk -F\" '{print $2}' combined_log    # request line (%r)
+awk -F\" '{print $4}' combined_log    # referer
+awk -F\" '{print $6}' combined_log    # user agent
+
+
+ list all user agents ordered by the number of times they appear (descending order):
+ awk -F\" '{print $6}' combined_log | sort | uniq -c | sort -fr
+ 
+If you're not particulary interested in which operating system the visitor is using, or what browser extensions they have, then you can use something like the following:
+awk -F\" '{print $6}' combined_log \
+  | sed 's/(\([^;]\+; [^;]\+\)[^)]*)/(\1)/' \
+  | sort | uniq -c | sort -fr
+This will strip out the third and subsequent values in the 'bracketed' component of the user agent string. For example:
+	Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR)
+becomes:
+	Mozilla/4.0 (compatible; MSIE 6.0) 
+ 
+Would you like to know which pages Google has been requesting from your site?
+awk -F\" '($6 ~ /Googlebot/){print $2}' combined_log | awk '{print $2}'
+Or who's been looking at your guestbook?
+awk -F\" '($2 ~ /guestbook\.html/){print $6}' combined_log
+
+identifying the different server responses and the requests that caused them:
+awk '{print $9}' combined_log | sort | uniq -c | sort
+
+A 404 code may indicate that you have a problem - a broken internal link or someone linking to a page that no longer exists. 
+You might need to fix the link, contact the site with the broken link And rewrite url with permanent redirect URL
+# list all 404 requests
+awk '($9 ~ /404/)' combined_log
+
+# summarise 404 requests
+awk '($9 ~ /404/)' combined_log | awk '{print $9,$7}' | sort
+
+use an inverted regular expression to summarise the requests that didn't return 200 ("OK"):
+awk '($9 !~ /200/)' combined_log | awk '{print $9,$7}' | sort | uniq
+
+you can include (or exclude in this case) a range of responses, in this case requests that returned 200 ("OK") or 304 ("Not Modified"):
+awk '($9 !~ /200|304/)' combined_log | awk '{print $9,$7}' | sort | uniq
+
+Suppose you've identifed a link that's generating a lot of 404 errors. Let's see where the requests are coming from:
+
+awk -F\" '($2 ~ "^GET /path/to/brokenlink\.html"){print $4,$6}' combined_log
+Now you can see not just the referer, but the user-agent making the request. You should be able to identify whether there is a broken link within your site, on an external site, or if a search engine or similar agent has an invalid address.
+If you can't fix the link, you should look at using Apache mod_rewrite or a similar scheme to redirect (301) the requests to the most appropriate page on your site. By using a 301 instead of a normal (302) redirect you are indicating to search engines and other intelligent agents that they need to update their link as the content has 'Moved Permanently'.
+
+
+Blank User Agents
+A 'blank' user agent is typically an indication that the request is from an automated script or someone who really values their privacy. The following command will give you a list of ip addresses for those user agents so you can decide if any need to be blocked:
+awk -F\" '($6 ~ /^-?$/)' combined_log | awk '{print $1}' | sort | uniq
+A further pipe through logresolve will give you the hostnames of those addresses.
+
+# list image requests that returned 403 Forbidden after blocking them
+awk '($9 ~ /403/)' combined_log \
+ | awk -F\" '($2 ~ /\.(jpg|gif)/){print $4}' \
+ | sort | uniq -c | sort
+
+
+tail -n 2 access.log error.log
+tail -f access.log | grep 404
+tail access.log | grep -A 2 "GET \/bwapp\/"
+tail access.log | grep -B 2 "POST \/wordpress"
+
+https://phoenixnap.com/kb/prevent-brute-force-attacks
+https://www.the-art-of-web.com/system/rewrite/
