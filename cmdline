@@ -93,3 +93,26 @@ For a bottom-up analysis, start by subtracting the legitimate traffic you alread
 Oftentimes, 80% of the errors are caused by a small number of known problems, so subtract those from your search. Now you can easily see unusual things like odd user agents or URLs that aren’t legitimate
 
      
+syslog and rsyslog https://www.rsyslog.com/
+No logging to disk it pipes directly to syslog
+ErrorLog  "| /usr/bin/logger -thttpd -plocal6.err"
+CustomLog "| /usr/bin/logger -thttpd -plocal6.notice" extended_ncsa
+
+writing to logs as well as syslog
+ErrorLog  "|/usr/bin/tee -a /var/log/www/error.log  | /usr/bin/logger -thttpd -plocal6.err"
+CustomLog "|/usr/bin/tee -a /var/log/www/access.log | /usr/bin/logger -thttpd -plocal6.notice" extended_ncsa
+
+The most common HTTP responses are: 
+https://www.the-art-of-web.com/system/logstatus/
+https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+200 - OK
+206 - Partial Content
+301 - Moved Permanently
+302 - Found
+304 - Not Modified
+401 - Unauthorised (password required)
+403 - Forbidden
+404 - Not Found
+
+https://www.the-art-of-web.com/system/logs/
+
