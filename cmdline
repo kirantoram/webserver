@@ -199,5 +199,56 @@ tail -f access.log | grep 404
 tail access.log | grep -A 2 "GET \/bwapp\/"
 tail access.log | grep -B 2 "POST \/wordpress"
 
+more vs less vs most
+ more -10 /var/log/auth.log #No of lines per page
+ more +14 /var/log/auth.log #display a page starting from a specific line number 
+ 
+ A useful feature of less command is the use of /word-to-seach option
+ less +5 /var/log/auth.log
+ less -Ne /var/log/daemon.log #numbering and exit on file end
+ less +/sshd /var/log/auth.log #open with first occurance of sshd 
+ less +F /var/log/syslog   #In order to automatically append the content of a file opened 
+ ls --color=yes | less -R #ls usually disables its text coloring when it's piping to something. less needs -R to pass ANSI escape characters to the screen or -r to pass escape all characters to the screen. 
+ 
+ 
+ most <multiple files> 
+ / or s or f  ?(backward) n(forward)
+ If you have opened multiple files, you can switch to next file by typing :n. Use UP/DOWN arrow keys to select next file and hit ENTER key to view the chosen file.
+ most ostechnix1.txt +/linux #open with linux match first line
+ 
+ To view the help section, press h at any time.
+
+List of all keybindings:
+Navigation:
+SPACE, D – Scroll down one screen.
+DELETE, U – Scroll Up one screen.
+DOWN arrow – Move Down one line.
+UP arrow – Move Up one line.
+T – Goto Top of File.
+B – Goto Bottom of file.
+> , TAB – Scroll Window right.
+< – Scroll Window left.
+RIGHT arrow – Scroll Window left by 1 column.
+LEFT arrow – Scroll Window right by 1 column.
+J, G – Goto nth line. For example, to jump to the 10th line, simply type “100j” (without quotes).
+% – Goto percent.
+Window Commands:
+
+Ctrl-X 2, Ctrl-W 2 – Split window.
+Ctrl-X 1, Ctrl-W 1 – Make only one window.
+O, Ctrl-X O – Move to other window.
+Ctrl-X 0 (zero) – Delete Window.
+Search through files:
+
+S, f, / – Search forward.
+? – Search Backward.
+N – Find next match in current search direction.
+Exit:
+
+q – Quit MOST program. All opened files will be closed.
+:N, :n – Quit this file and view next (Use UP/DOWN arrow keys to select next file).
+For more details about ‘most’ command, refer the man pages.
+ 
+ 
 https://phoenixnap.com/kb/prevent-brute-force-attacks
 https://www.the-art-of-web.com/system/rewrite/
