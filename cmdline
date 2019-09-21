@@ -1,0 +1,24 @@
+Troubleshoot with Apache Logs
+There are several ways for a website to break, and when they do, you’ll want to have the information needed to quickly bring it back online. If you or your users experience an error, you may want to find out the following.
+
+What page the user was on
+What the status code was (i.e., 404)
+How much load the server was under at the time
+How long it took the page to load
+Any unusual traffic patterns
+What browser (or user agent) the user had
+how many threads 
+how much cpu , memory & lsof
+
+https://www.loggly.com/ultimate-guide/apache-logging-basics/
+
+Access log contains information about requests coming in to the web server. 
+This information can include what pages people are viewing, the success status of requests, and how long the server took to respond.
+
+Error log contains information about errors the web server encountered when processing requests, such as missing files. It also includes diagnostic information about the server itself.
+
+status codes:
+Below extracts patterns of three digits surrounded by spaces.
+grep -o " [0-9]{3} " /var/log/apache2/access.log
+
+$ cat access.log | cut -d ' ' -f 9
