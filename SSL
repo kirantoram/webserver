@@ -3,7 +3,8 @@ https://dzone.com/articles/ssl-in-java
 http://fosshelp.blogspot.com/2016/11/how-to-create-pem-file-for-haproxy.html
 
 
- Convert PFX to be Used with Apache Server
+ Convert PFX to be Used with Apache Server PFX OR P12 -> pem (key and cert in base64 ASCII)
+==================================BEGIN==================================================== 
 Extract the certificate and private key using Openssl
 1) Extract the private key
 openssl.exe pkcs12 -in mycert.pfx -nocerts -out privatekey.pem
@@ -28,4 +29,114 @@ Remove all the Bag attributes
 or copy from "BEGING CERTIFICATE" TO "END CERTIFICATE" and paste it in .cert file 
 
 above key and cert in PEM format can be used in Apache
+<VirtualHost 192.168.0.1:443>
+    DocumentRoot /var/www/html2
+    ServerName www.yourdomain.com
+        SSLEngine on
+        SSLCertificateFile /path/to/your_domain_name.crt
+        SSLCertificateKeyFile /path/to/your_private.key
+        SSLCertificateChainFile /path/to/DigiCertCA.crt
+    </VirtualHost>
+==================================*****=========================================
 
+create a PEM file for HAProxy Configure SSL Certificate  "cert + key" combined pem file
+==================================BEGIN=================================================================
+1)Generate a unique private key (KEY)
+$sudo openssl genrsa -out mydomain.key 2048
+Note:
+Content in this file start with -----BEGIN RSA PRIVATE KEY-----
+
+2)Generating a Certificate Signing Request (CSR)
+$sudo openssl req -new -key mydomain.key -out mydomain.csr
+Note:
+Content in this file start with -----BEGIN CERTIFICATE REQUEST-----
+
+3)Creating a Self-Signed Certificate (CRT)
+$openssl x509 -req -days 365 -in mydomain.csr -signkey mydomain.key -out mydomain.crt
+Note:
+Content in this file start with -----BEGIN CERTIFICATE-----
+
+4)Append KEY and CRT to mydomain.pem
+$sudo bash -c 'cat mydomain.key mydomain.crt >> /etc/ssl/private/mydomain.pem'
+Note:
+This pem file contains 2 sections (certificates), one start with -----BEGIN RSA PRIVATE KEY----- and  another one start with -----BEGIN CERTIFICATE-----
+
+5)Specify PEM in haproxy config
+$ sudo vim /etc/haproxy/haproxy.cfg
+listen haproxy
+  bind 0.0.0.0:443 ssl crt /etc/ssl/private/mydomain.pem
+  
+6)Restart haproxy
+$ sudo service haproxy restart
+
+convert-p12-pem script
+======================
+#!/bin/sh
+##Convert IGCA .p12 cert into .pem file
+P12=$1
+KEY="$HOME/.globus/userkey.pem"
+CERT="$HOME/.globus/usercert.pem"
+
+if [ -z "$P12" ] ; then
+    echo "Usage: $0 <your-p12-cert>"
+    exit
+fi
+
+if [ ! -r "$P12" ] ; then
+    echo "$P12 not readable"
+    exit
+fi
+
+# make sure $HOME/.globus is there
+mkdir -p $HOME/.globus
+
+echo "Generating your public cert : Enter the password you set during .p12 export from browser"
+
+openssl pkcs12 -clcerts -nokeys -in $P12 -out $CERT
+chmod 644 $CERT
+
+echo
+
+echo "Generating your private key : : Enter the password you set during .p12 export from browser"
+
+# Make sure key is writable
+if [ -r $KEY ] ; then
+    chmod 600 $KEY
+fi
+
+openssl pkcs12 -nocerts -in $P12 -out $KEY
+chmod 400 $KEY
+
+echo "Your usercert.pem and userkey.pem is stored inside .globus folder"
+
+
+
+==================================BEGIN=========================================
+# export PATH=$OPENSSL_PATH/bin:$PATH
+# openssl version
+# openssl req -new -days 365 -sha1 -newkey rsa:2048 -nodes -keyout hostkey.pem -out hostcert_request.pem -subj ‘/DC=IN/DC=GARUDAINDIA/O=C-DAC/OU=CTSF/CN=FQDN’
+It generates 2 files (hostkey.pem -Private Key File and hostcert_request.pem -Public Key File).
+$ chmod 644 usercert.pem
+$ chmod 400 userkey.pem
+
+
+https://tecadmin.net/install-openssl-on-windows/
+==================================BEGIN=========================================
+/usr/bin/openssl
+
+Certificate Export wizard
+Certificate formats
+	DER encoded Binary x.509(.CER)	
+        Base 64 encoded Binary x.509(.CER)
+        Cryptographic Message Syntax Standard - PKCS#7 certificate(.p7b)
+	Personal Information Exchange PKCS#12(.pfx)
+
+CMs 
+keystore and truststore
+
+
+You can open in browser and import the certificate  or use openssl
+Browser exported certificate contains only domain cert not complete chain
+openssl s_client -connect api-s5.postini.com:443 -showcerts
+#prints out the cert chain, identify by CN
+keytool -importcert -file c:\temp\google.cer -keystore lib\security\cacerts -alias google
