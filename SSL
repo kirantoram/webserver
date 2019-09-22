@@ -2,10 +2,94 @@ https://www.digicert.com/csr-ssl-installation/apache-openssl.htm
 https://dzone.com/articles/ssl-in-java
 http://fosshelp.blogspot.com/2016/11/how-to-create-pem-file-for-haproxy.html
 https://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html
+https://support.ssl.com/Knowledgebase/Article/View/19/0/der-vs-crt-vs-cer-vs-pem-certificates-and-how-to-convert-them
+https://blogs.msdn.microsoft.com/kaushal/2010/11/04/various-ssltls-certificate-file-typesextensions/
+http://www.stefanocapitanio.com/configuring-two-way-authentication-ssl-with-apache/
+
+
+Formats and description of each format
+--------------------------------------
+PEM Format PEM - Privacy Enhanced Mail
+DER Format  DER - Distinguished Encoding Rule
+PKCS#7   
+PFX Format (PKCS#12)  PFX - Personal Information Exchange
+-----
+PEM : https://www.ietf.org/rfc/rfc1421.txt
+https://www.openssl.org/docs/faq.html#USER
+==================================\\==================================================== 
+Tomcat currently operates only on JKS, PKCS11 or PKCS12 format keystores.  https://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html
+The JKS format is Java's standard "Java KeyStore" format, and is the format created by the keytool command-line utility. This tool is included in the JDK. 
+The PKCS12 format is an internet standard, and can be manipulated via (among other things) OpenSSL and Microsoft's Key-Manager.
+
+
+
+==================================\\==================================================== 
+
 
 1) Convert PFX to be Used with Apache Server PFX OR P12 -> pem (key and cert in base64 ASCII)
 2) Convert A PEM Formatted Secure Sockets Layer (SSL) Certificate To PKCS12 Using OpenSSL
 3) Convert a DER encoded certificate to a PEM encoded certificate with OpenSSL
+
+
+How do I find out if my X.509 certificate is in PEM, DER, or pkcs12 format? 
+How do I choose the right certificate format when uploading it to the controller?
+==================================BEGIN==================================================== 
+If the certificate is in text format, then it is in PEM format.
+You can read the contents of a PEM certificate (cert.crt) using the 'openssl' command on Linux or Windows as follows:
+openssl x509 -in cert.crt -text
+ 
+ 
+If the file content is binary, the certificate could be either DER or pkcs12/pfx. To find out which format, run the following 'openssl' commands to open the certificate:
+ 
+To open a DER certificate: 
+openssl x509 -in cert.crt -inform DER -text
+ 
+To display pkcs12 certificate information:
+openssl pkcs12 -in cert.crt -info
+
+-------------
+View
+====
+
+Even though PEM encoded certificates are ASCII they are not human
+readable.  Here are some commands that will let you output the
+contents of a certificate in human readable form;
+
+View PEM encoded certificate
+----------------------------
+
+Use the command that has the extension of your certificate replacing
+cert.xxx with the name of your certificate
+
+openssl x509 -in cert.pem -text -noout
+openssl x509 -in cert.cer -text -noout
+openssl x509 -in cert.crt -text -noout
+
+If you get the folowing error it means that you are trying to view a DER encoded certifciate and need to use the commands in the “View DER encoded certificate 
+below”
+
+unable to load certificate
+12626:error:0906D06C:PEM routines:PEM_read_bio:no start line:pem_lib.c:647:Expecting: TRUSTED CERTIFICATE View DER encoded Certificate
+
+
+View DER encoded Certificate
+----------------------------
+
+openssl x509 -in certificate.der -inform der -text -noout
+
+If you get the following error it means that you are trying to view a PEM encoded certificate with a command meant for DER encoded certs. Use a command in the “View PEM encoded certificate above
+
+unable to load certificate
+13978:error:0D0680A8:asn1 encoding routines:ASN1_CHECK_TLEN:wrong tag:tasn_dec.c:1306:
+13978:error:0D07803A:asn1 encoding routines:ASN1_ITEM_EX_D2I:nested asn1 error:tasn_dec.c:380:Type=X509
+
+==================================BEGIN==================================================== 
+Note : the PEM standard (RFC1421) mandates lines with 64 characters long. 
+A PEM certificate stored as a single line can be converted with the UNIX command-line utility
+fold -w 64
+==================================BEGIN==================================================== 
+Certificate/CSR/Private Key Matcher
+Check whether private key, Certificate and CSR comes from the same key
 
  Convert PFX to be Used with Apache Server PFX OR P12 -> pem (key and cert in base64 ASCII)
 ==================================BEGIN==================================================== 
@@ -177,3 +261,96 @@ file certificate.crt
 certificate.crt PEM certificate #To check format of certificate in PEM format
 
 ==================================*****=========================================
+
+
+Generate Your Apache Self Signed Certificate
+==================================BEGIN=========================================
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout mysitename.key -out mysitename.crt
+
+
+==================================BEGIN=========================================
+How to move a certificate from Apache to Tomcat server  [ p12 to pem ]
+==================================BEGIN=========================================
+Problem
+Export certificate from Apache pem 
+Import certificate into Tomcat
+Export certificate from Apache to Tomcat
+
+Solution
+To move a certificate from Apache to Tomcat please do the following:
+Step 1: Convert the public and private key pair from Apache to a keystore file
+Switch the Certificate from Apache format to Tomcat 5.x format by issuing the following command using OpenSSL:
+
+openssl pkcs12 -export -in YourGeotrstSSLCert.crt -inkey YourPrivateKey.key -out mycert.p12 -name tomcat -CAfile YourIntermediateCertificate.cer -caname root -chain
+ 
+where:
+YourIntermediateCertificate.cer is the GeoTrust Intermediate CA available for download 
+YourGeoTrustSSLCert.crt is your current openssl certificate
+YourPrivateKey.key is your current private key 
+mycert.p12 is the name of the exported keystore file 
+
+Step 2: Configure the Tomcat Server to use the keystore file
+Open %TOMCAT_HOME/conf/server.xml in XML or text editor
+Uncomment the SSL Connector if it is not uncommented already
+Add the following attributes:
+keystoreFile=”c:\PATH_TO_mycert.p12” keystorePass=”PASSWORD HERE”
+keystoreType=”PKCS12″
+
+Restart Tomcat.
+Point the browser to https://localhost:8443. If it doesn’t load look in the log files to identify the problem.
+Note: PKCS12 keystore type is only supported with JDK 1.5.x+
+
+==================================BEGIN=========================================
+How to move an SSL certificate from Tomcat to Apache [ keystore jks -> p12 -> pem ]
+==================================BEGIN=========================================
+
+Problem
+How to move an SSL certificate from Tomcat to Apache
+Solution
+Note: Keytool and OpenSSL are third party tools which are not supported by Thawte
+Step 1: Use keytool to convert the keystore to a p12 file
+
+keytool -importkeystore -srckeystore [originalkeystore] -destkeystore [new_keystore_mystore.p12] -deststoretype PKCS12 -srcstorepass [keystore_password] -deststorepass [new_password] -srcalias [original_alias] -destalias [new_alias] -srckeypass [original_alias_password] -destkeypass [new_password] -noprompt
+The output file is [new_keystore_mystore.p12]
+ 
+Use OpenSSL to extract the private key:
+openssl.exe pkcs12 -in new_keystore_mystore.p12 -nocerts -out privatekey.pem
+
+Use OpenSSL to extract the certificate:
+openssl.exe pkcs12 -in new_keystore_mystore.p12 -clcerts -nokeys -out publicCert.pem
+ 
+Save the two files (privatekey.pem and publicCert.pem) to the Apache server
+Step 2: Import files into the Apache server:
+      1. Download the intermediate certificate. Thawte Intermediate CA certificates can be found here: INFO1384
+      2. Using a plain text editor, save the Intermediate CA certificate as intermediate.crt, to the appropriate folder.
+For example: /etc/apache2/ssl.crt/intermediate.crt
+The text file should look like the example below:
+-----BEGIN CERTIFICATE-----
+[encoded data]
+-----END CERTIFICATE-----
+Make sure there are 5 dashes to either side of the BEGIN CERTIFICATE and END CERTIFICATE and that no white space, extra line breaks or additional characters have been added.
+       3. Open the httpd.conf file using a plain text editor and update the directives so they point to the location where the 3 files were saved:
+
+Make sure the Virtual host looks similar to the example below:
+<VirtualHost x.x.x.x:443>
+ServerAdmin webmaster@Your_domain_name.com
+ServerName www.Your_domain_name.com
+ ...
+SSLCertificateFile /Path to the file.../publicCert.pem
+SSLCertificateKeyFile /Path to the file.../privatekey.pem
+SSLCACertificateFile /Path to the file.../intermediate.crt
+</VirtualHost>
+Note: Depending on the version of Apache, the directive SSLCACertificateFile may be SSLCertificateChainFile
+       4. Restart Apache
+
+==================================//=========================================
+
+
+
+
+
+
+
+
+
+
