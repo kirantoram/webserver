@@ -1,3 +1,31 @@
 https://www.digicert.com/csr-ssl-installation/apache-openssl.htm
 https://dzone.com/articles/ssl-in-java
 http://fosshelp.blogspot.com/2016/11/how-to-create-pem-file-for-haproxy.html
+
+
+ Convert PFX to be Used with Apache Server
+Extract the certificate and private key using Openssl
+1) Extract the private key
+openssl.exe pkcs12 -in mycert.pfx -nocerts -out privatekey.pem
+Enter Import Password:
+Enter PEM pass phrase:
+Verifying- Enter PEM pass phrase:
+
+privatekey.pem will be in encrypted from (you cant read like BEGIN RSA KEY) as pfx is binary form. To decrypt
+
+2) Decrypt private key
+openssl.exe rsa -in privatekey.pem -out private.pem
+Enter pass phrase for privatekeyp.pem
+writing RAS Key
+
+open in notepad and check no extra lines present and it should have BEGING RAS KEY 
+
+3) Extract certificates alone 
+openssl.exe pkcs12 -in mycert.pfx -clcerts -nokeys -out trustcert.pem
+ 
+open in notepad and check no extra lines present
+Remove all the Bag attributes
+or copy from "BEGING CERTIFICATE" TO "END CERTIFICATE" and paste it in .cert file 
+
+above key and cert in PEM format can be used in Apache
+
