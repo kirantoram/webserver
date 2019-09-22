@@ -1,7 +1,11 @@
 https://www.digicert.com/csr-ssl-installation/apache-openssl.htm
 https://dzone.com/articles/ssl-in-java
 http://fosshelp.blogspot.com/2016/11/how-to-create-pem-file-for-haproxy.html
+https://tomcat.apache.org/tomcat-7.0-doc/ssl-howto.html
 
+1) Convert PFX to be Used with Apache Server PFX OR P12 -> pem (key and cert in base64 ASCII)
+2) Convert A PEM Formatted Secure Sockets Layer (SSL) Certificate To PKCS12 Using OpenSSL
+3) Convert a DER encoded certificate to a PEM encoded certificate with OpenSSL
 
  Convert PFX to be Used with Apache Server PFX OR P12 -> pem (key and cert in base64 ASCII)
 ==================================BEGIN==================================================== 
@@ -140,3 +144,36 @@ Browser exported certificate contains only domain cert not complete chain
 openssl s_client -connect api-s5.postini.com:443 -showcerts
 #prints out the cert chain, identify by CN
 keytool -importcert -file c:\temp\google.cer -keystore lib\security\cacerts -alias google
+
+==================================BEGIN=========================================
+Convert A PEM Formatted Secure Sockets Layer (SSL) Certificate To PKCS12 Using OpenSSL
+==================================BEGIN=========================================
+#view and verify your public certificate 
+openssl x509 -out peminfo.txt -text -in $pem
+
+#view and verify your CA's public Intermediate certificate 
+openssl x509 -out IntermediateInfo.txt -text -in $Intermediate
+
+#create pkcs12 using private key, Intermediate and public certificate
+openssl pkcs12 -export -out pkcscert.pk12 -inkey $privatekey -in $pem -certfile $intermediate
+
+#verify the certificate 
+openssl pkcs12 -info -in $pkcs12 -out pfxinfo.txt
+asks two passphrases for public cert and private key
+verify expiry and certs order 
+pk12 file = order domanincert -> Interm cert -> root cert -> private key
+ 
+
+==================================BEGIN=========================================
+Convert a DER encoded certificate to a PEM encoded certificate with OpenSSL
+
+openssl x509 -inform der -in certificate.cer -outform pem -out certificate.crt
+
+checks
+file certificate.cer	
+certificate.cer: data 		#To check format of certificat in der format
+
+file certificate.crt
+certificate.crt PEM certificate #To check format of certificate in PEM format
+
+==================================*****=========================================
